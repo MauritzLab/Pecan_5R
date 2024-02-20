@@ -11,88 +11,175 @@ library(shiny)
 library(flexdashboard)
 library(data.table)
 
+library(data.table)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+library(dplyr)
+
+
 #import data
-wd <- ("C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Pecan_Tornillo_5R/ECTower/ProfileSystem/Data/RoofTest")
+# C:\Users\memauritz\OneDrive - University of Texas at El Paso\Pecan_Tornillo_5R\ECTower\ProfileSystem\Data\RoofTest
+
+wd <- ("C:/Users/memauritz/OneDrive - University of Texas at El Paso/Pecan_Tornillo_5R/ECTower/ProfileSystem/Data/RoofTest")
 setwd(wd)
 
-#trying to add new files?
-#AP200.data <- rbindlist(lapply(list.files(path = wd, pattern = "IntAvg"), fread),fill=TRUE)
 
 #set column names
 profile_colnames1 <- fread("TOA5_45644.IntAvg_2023_12_15_1430.dat",
-                       header = TRUE, skip=1,sep=",", fill=TRUE,
-                       na.strings=c(-9999,"#NAME?"))[1,]
-    
+                           header = TRUE, skip=1,sep=",", fill=TRUE,
+                           na.strings=c(-9999,"#NAME?"))[1,]
+
 
 #set up data table
 profile_dat1 <- fread("TOA5_45644.IntAvg_2023_12_15_1430.dat",
-              header = FALSE, skip=4, sep=",", fill=TRUE,
-              na.strings=c(-9999,"#NAME?"),
-              col.names=colnames(profile_colnames1))
+                      header = FALSE, skip=4, sep=",", fill=TRUE,
+                      na.strings=c(-9999,"#NAME?"),
+                      col.names=colnames(profile_colnames1))
 
+
+#set up data table
+profile_dat2 <- fread("ProfileSystemCR1000XSeries_IntAvg_2024_02-_04_1600.dat",
+                      header = FALSE, skip=4, sep=",", fill=TRUE,
+                      na.strings=c(-9999,"#NAME?"),
+                      col.names=colnames(profile_colnames1))
+
+# combine dat1 and dat2
+
+profile_dat <- rbind(profile_dat1, profile_dat2)
+
+
+# read in raw data to check diagnostics
+raw_colnames1 <- fread("TOA5_45644.RawData_2023_12_15_1401.dat",
+                       header = TRUE, skip=1,sep=",", fill=TRUE,
+                       na.strings=c(-9999,"#NAME?"))[1,]
+
+raw_dat1 <- fread("TOA5_45644.RawData_2023_12_15_1401.dat",
+                  header = FALSE, skip=4, sep=",", fill=TRUE,
+                  na.strings=c(-9999,"#NAME?"),
+                  col.names=colnames(raw_colnames1))
 
 #putting in long format for pump data
-profile.long.pump <- profile_dat1 %>%
+profile.long.pump <- profile_dat %>%
   select(TIMESTAMP, L1_NumSamples, L1_CO2, L1_H2O, L1_cell_tmpr, L1_sample_flow, L2_NumSamples, L2_CO2, L2_H2O, L2_cell_tmpr, L2_cell_press, L3_sample_flow, L3_NumSamples, L3_CO2, L3_H2O, L3_cell_tmpr, L3_cell_press, L3_sample_flow, L4_NumSamples, L4_CO2, L4_H2O, L4_cell_tmpr, L4_cell_press, L4_sample_flow, L5_NumSamples, L5_CO2, L5_H2O, L5_cell_tmpr, L5_cell_press, L5_sample_flow, L6_NumSamples, L6_CO2, L6_H2O, L6_cell_tmpr, L6_cell_press, L6_sample_flow) %>%
   pivot_longer(!c(TIMESTAMP), names_to="sampleID",values_to="value")
 
 #seperate into pump level by using _
 profile.long.pump <- profile.long.pump %>%
-separate_wider_delim(sampleID, "_", names = c("pump", "variable"), too_many = "merge")
-   
+  separate_wider_delim(sampleID, "_", names = c("pump", "variable"), too_many = "merge")
+
 #renaming columns then putting into long format for temp probe data
-profile.long.temp <- profile_dat1 %>%
-select(TIMESTAMP, `T_air_Avg(1)`, `T_air_Avg(2)`, `T_air_Avg(3)`, `T_air_Avg(4)`, `T_air_Avg(5)`, `T_air_Avg(6)`) %>%
-         rename(L1_Tair = `T_air_Avg(1)`,
+profile.long.temp <- profile_dat %>%
+  select(TIMESTAMP, `T_air_Avg(1)`, `T_air_Avg(2)`, `T_air_Avg(3)`, `T_air_Avg(4)`, `T_air_Avg(5)`, `T_air_Avg(6)`) %>%
+  rename(L1_Tair = `T_air_Avg(1)`,
          L2_Tair = `T_air_Avg(2)`,
          L3_Tair = `T_air_Avg(3)`,
          L4_Tair = `T_air_Avg(4)`,
          L5_Tair = `T_air_Avg(5)`,
          L6_Tair = `T_air_Avg(6)`)%>%
-pivot_longer(!c(TIMESTAMP), names_to="sampleID",values_to="value")
+  pivot_longer(!c(TIMESTAMP), names_to="sampleID",values_to="value")
 
 #seperate into level by using _
 profile.long.temp <- profile.long.temp %>%
-separate_wider_delim(sampleID, "_", names = c("pump", "variable"))
- 
+  separate_wider_delim(sampleID, "_", names = c("pump", "variable"))
+
 
 #long format for system check data
-profile.long.sys <- profile_dat1 %>%
-select(TIMESTAMP, RECORD, pump_press_Avg, pump_control_Avg, pump_speed_Avg, PumpTmprOK_Avg, pump_tmpr_Avg, pump_heat_Avg, pump_fan_Avg, ValveTmprOK_Avg, valve_tmpr_Avg, valve_heat_Avg, valve_fan_Avg, intake_heat_Avg, batt_volt_Avg, BattVoltLOW_Avg, panel_tmpr_Avg) %>%
-  pivot_longer(!c(TIMESTAMP), names_to="sampleID",values_to="value")
+profile.long.sys <- profile_dat %>%
+  select(TIMESTAMP, diag_AP200_Avg, RECORD, pump_press_Avg, pump_control_Avg, pump_speed_Avg, PumpTmprOK_Avg, pump_tmpr_Avg, pump_heat_Avg, pump_fan_Avg, ValveTmprOK_Avg, valve_tmpr_Avg, valve_heat_Avg, valve_fan_Avg, intake_heat_Avg, batt_volt_Avg, BattVoltLOW_Avg, panel_tmpr_Avg) %>%
+  pivot_longer(!c(TIMESTAMP), names_to="variable",values_to="value")
 
+
+# show variables in pump data
+levels(as.factor(profile.long.pump$variable))
+
+#graph cell temperature per pump data
+# Temperature of IRGA cell. The value of 
+# cell_tmpr, which is measured by the IRGA. The normal range for the sample 
+# cell temperature is 48 to 52 °C
+profile.long.pump %>% filter(variable %in% c("cell_tmpr")&value<1000&value>50.9)%>%
+  ggplot(., aes(TIMESTAMP, value, color=pump))+
+  geom_line()+
+  facet_wrap(pump~.)
+
+
+#graph cell pressure per pump data
+# cell pressure of the IRGA
+# This should be within ± 2 kPa of the pressure setpoint
+# Compare cell_press (pressure measured by the IRGA) to pump_press
+# (pressure measured at the pump inlet). These two points are physically 
+# connected by a tube with relatively low flow, such that they should be at 
+# similar pressures. The pressure values should agree within the combined 
+# uncertainty of the respective pressure sensors.They shoud be within 4 kPa of each other
+profile.long.pump %>% filter(variable %in% c("cell_press")&value<75)%>%
+  ggplot(., aes(TIMESTAMP, value, color=pump))+
+  geom_line()+
+  facet_wrap(pump~.)
+
+profile.long.sys %>% filter(variable %in% c("pump_press_Avg")&value<75)%>%
+  ggplot(., aes(TIMESTAMP, value))+
+  geom_line()
+
+# graph cell_press and pump_press_Avg in the same figure
+
+# graph Number of samples per pump
+# for 6 levels should be 200 samples/30 mins
+profile.long.pump %>% filter(variable %in% c("NumSamples"))%>%
+  ggplot(., aes(TIMESTAMP, value, color=pump))+
+  geom_line()+
+  facet_wrap(pump~.)
+
+# graph sample flow for each pump
+#  The normal expected range for the flow would be from ~200 to ~250 ml/min
+#  As a general guideline, the filters 
+# should be replaced when the flow decreases by 25%. The filters will normally 
+# last a few months, but will require more frequent changes in dirty conditions
+profile.long.pump %>% filter(variable %in% c("sample_flow"))%>%
+  ggplot(., aes(TIMESTAMP, value, color=pump))+
+  geom_line()+
+  facet_wrap(pump~.)
 
 #graph average CO2 per pump data
 profile.long.pump %>% filter(variable %in% c("CO2"))%>%
-ggplot(., aes(TIMESTAMP, value, color=pump))+
-geom_line()
+  ggplot(., aes(TIMESTAMP, value, color=pump))+
+  geom_line()+
+  facet_wrap(pump~.)
 
 #graph average H2O per pump data
 profile.long.pump %>% filter(variable %in% c("H2O"))%>%
-ggplot(., aes(TIMESTAMP, value, color=pump))+
-geom_line()
+  ggplot(., aes(TIMESTAMP, value, color=pump))+
+  geom_line()+
+  facet_wrap(pump~.)
 
 #graph temperaure per level of pump 
 profile.long.temp%>%
-ggplot(., aes(TIMESTAMP, value, color=pump))+
-geom_line()
+  ggplot(., aes(TIMESTAMP, value, color=pump))+
+  geom_line()+
+  facet_wrap(pump~.)
+
+# graph AP200 diag for system
+# should be 0 if there are no diagnostic problems
+profile.long.sys %>%
+  filter(variable %in% c("diag_AP200_Avg")) %>%
+  ggplot(., aes(TIMESTAMP, value))+
+  geom_line()
+
 
 #graph for system pump check data
-profile.long.sys %>% filter(sampleID %in% c("pump_press_Avg", "pump_control_Avg", "pump_speed_Avg", "PumpTmprOK_Avg", "pump_tmpr_Avg", "pump_heat_Avg", "pump_fan_Avg"))%>%
-ggplot(., aes(TIMESTAMP, value))+
-geom_line()+
-facet_grid(sampleID~.,scales="free_y")
+profile.long.sys %>% filter(variable %in% c("pump_press_Avg", "pump_control_Avg", "pump_speed_Avg", "PumpTmprOK_Avg", "pump_tmpr_Avg", "pump_heat_Avg", "pump_fan_Avg"))%>%
+  ggplot(., aes(TIMESTAMP, value))+
+  geom_line()+
+  facet_grid(variable~.,scales="free_y")
 
 #graph for system valve check data
 profile.long.sys %>% filter(sampleID %in% c("ValveTmprOK_Avg", "valve_tmpr_Avg", "valve_heat_Avg", "valve_fan_Avg", "intake_heat_Avg"))%>%
-ggplot(., aes(TIMESTAMP, value))+
-geom_line()+
-facet_grid(sampleID~.,scales="free_y")
+  ggplot(., aes(TIMESTAMP, value))+
+  geom_line()+
+  facet_grid(sampleID~.,scales="free_y")
 
 #graph for battery & panel temp check
-profile.long.sys %>% filter(sampleID %in% c("batt_volt_Avg", "BattVoltLOW_Avg", "panel_tmpr_Avg"))%>%
-ggplot(., aes(TIMESTAMP, value))+
-geom_line()+
-facet_grid(sampleID~.,scales="free_y")
-              
+profile.long.sys %>% filter(variable %in% c("batt_volt_Avg", "BattVoltLOW_Avg", "panel_tmpr_Avg"))%>%
+  ggplot(., aes(TIMESTAMP, value))+
+  geom_line()+
+  facet_grid(variable~.,scales="free_y")
 
