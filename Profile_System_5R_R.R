@@ -19,42 +19,49 @@ library(dplyr)
 
 
 #import data
-# C:\Users\memauritz\OneDrive - University of Texas at El Paso\Pecan_Tornillo_5R\ECTower\ProfileSystem\Data\RoofTest
+# C:\Users\memauritz\OneDrive - University of Texas at El Paso\Pecan_Tornillo_5R\ECTower\ProfileSystem\Data\raw
+# C:\Users\vmartinez62\OneDrive - University of Texas at El Paso\Pecan_Tornillo_5R\ECTower\ProfileSystem\Data\raw
 
-wd <- ("C:/Users/memauritz/OneDrive - University of Texas at El Paso/Pecan_Tornillo_5R/ECTower/ProfileSystem/Data/RoofTest")
+#wd <- ("C:/Users/memauritz/OneDrive - University of Texas at El Paso/Pecan_Tornillo_5R/ECTower/ProfileSystem/Data/raw")
+#setwd(wd)
+
+#or 
+
+wd <- ("C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Pecan_Tornillo_5R/ECTower/ProfileSystem/Data/raw")
 setwd(wd)
 
-
 #set column names
-profile_colnames1 <- fread("TOA5_45644.IntAvg_2023_12_15_1430.dat",
+profile_colnames1 <- fread("TOA5_45644.IntAvg_2024_02_20_1530.dat",
                            header = TRUE, skip=1,sep=",", fill=TRUE,
                            na.strings=c(-9999,"#NAME?"))[1,]
 
+# Roof Test Data
 
-#set up data table
-profile_dat1 <- fread("TOA5_45644.IntAvg_2023_12_15_1430.dat",
+#set up data table 
+profile_dat1 <- fread("TOA5_45644.IntAvg_2024_02_20_1530.dat",
                       header = FALSE, skip=4, sep=",", fill=TRUE,
                       na.strings=c(-9999,"#NAME?"),
                       col.names=colnames(profile_colnames1))
 
 
 #set up data table
-profile_dat2 <- fread("ProfileSystemCR1000XSeries_IntAvg_2024_02-_04_1600.dat",
+profile_dat2 <- fread("TOA5_45644.IntAvg_2024_02_20_1530.dat",
                       header = FALSE, skip=4, sep=",", fill=TRUE,
                       na.strings=c(-9999,"#NAME?"),
                       col.names=colnames(profile_colnames1))
 
-# combine dat1 and dat2
 
-profile_dat <- rbind(profile_dat1, profile_dat2)
+# combine dat1, dat2, and dat3
+
+profile_dat <- rbind(profile_dat1, profile_dat2, profile_dat3)
 
 
 # read in raw data to check diagnostics
-raw_colnames1 <- fread("TOA5_45644.RawData_2023_12_15_1401.dat",
+raw_colnames1 <- fread("TOA5_45644.RawData_2024_02_20_1501.dat",
                        header = TRUE, skip=1,sep=",", fill=TRUE,
                        na.strings=c(-9999,"#NAME?"))[1,]
 
-raw_dat1 <- fread("TOA5_45644.RawData_2023_12_15_1401.dat",
+raw_dat1 <- fread("TOA5_45644.RawData_2024_02_20_1501.dat",
                   header = FALSE, skip=4, sep=",", fill=TRUE,
                   na.strings=c(-9999,"#NAME?"),
                   col.names=colnames(raw_colnames1))
