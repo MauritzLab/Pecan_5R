@@ -51,9 +51,9 @@ profile_dat2 <- fread("TOA5_45644.IntAvg_2024_02_20_1530.dat",
                       col.names=colnames(profile_colnames1))
 
 
-# combine dat1, dat2, and dat3
+# combine dat1, and dat2
 
-profile_dat <- rbind(profile_dat1, profile_dat2, profile_dat3)
+profile_dat <- rbind(profile_dat1, profile_dat2)
 
 
 # read in raw data to check diagnostics
@@ -104,11 +104,17 @@ levels(as.factor(profile.long.pump$variable))
 # Temperature of IRGA cell. The value of 
 # cell_tmpr, which is measured by the IRGA. The normal range for the sample 
 # cell temperature is 48 to 52 °C
-profile.long.pump %>% filter(variable %in% c("cell_tmpr")&value<1000&value>50.9)%>%
+profile.long.pump %>% filter(variable %in% c("cell_tmpr")&value<53&value>47)%>%
   ggplot(., aes(TIMESTAMP, value, color=pump))+
   geom_line()+
-  facet_wrap(pump~.)
+  facet_wrap(pump~.)+
+  labs(title="cell temp")
 
+
+#count of out of range cell temperatures
+cell_tmpr_outofrange <- profile.long.pump %>% filter(variable %in% c("cell_tmpr")&(value<48|value>52))%>%
+  arrange(TIMESTAMP,pump)
+  
 
 #graph cell pressure per pump data
 # cell pressure of the IRGA
@@ -121,11 +127,13 @@ profile.long.pump %>% filter(variable %in% c("cell_tmpr")&value<1000&value>50.9)
 profile.long.pump %>% filter(variable %in% c("cell_press")&value<75)%>%
   ggplot(., aes(TIMESTAMP, value, color=pump))+
   geom_line()+
-  facet_wrap(pump~.)
+  facet_wrap(pump~.)+
+  labs(title="cell pressure")
 
 profile.long.sys %>% filter(variable %in% c("pump_press_Avg")&value<75)%>%
   ggplot(., aes(TIMESTAMP, value))+
-  geom_line()
+  geom_line()+
+  labs(title="pump pressure")
 
 # graph cell_press and pump_press_Avg in the same figure
 
@@ -134,7 +142,8 @@ profile.long.sys %>% filter(variable %in% c("pump_press_Avg")&value<75)%>%
 profile.long.pump %>% filter(variable %in% c("NumSamples"))%>%
   ggplot(., aes(TIMESTAMP, value, color=pump))+
   geom_line()+
-  facet_wrap(pump~.)
+  facet_wrap(pump~.)+
+  labs(title="number of samples")
 
 # graph sample flow for each pump
 #  The normal expected range for the flow would be from ~200 to ~250 ml/min
@@ -144,32 +153,57 @@ profile.long.pump %>% filter(variable %in% c("NumSamples"))%>%
 profile.long.pump %>% filter(variable %in% c("sample_flow"))%>%
   ggplot(., aes(TIMESTAMP, value, color=pump))+
   geom_line()+
-  facet_wrap(pump~.)
+  geom_hline(yintercept = c(200,250))+
+  facet_wrap(pump~.)+
+  labs(title="sample flow")
 
 #graph average CO2 per pump data
 profile.long.pump %>% filter(variable %in% c("CO2"))%>%
   ggplot(., aes(TIMESTAMP, value, color=pump))+
   geom_line()+
-  facet_wrap(pump~.)
+  facet_wrap(pump~.)+
+  labs(title="CO2")
 
 #graph average H2O per pump data
 profile.long.pump %>% filter(variable %in% c("H2O"))%>%
   ggplot(., aes(TIMESTAMP, value, color=pump))+
   geom_line()+
-  facet_wrap(pump~.)
+  facet_wrap(pump~.)+
+  labs(title="H2O")
 
 #graph temperaure per level of pump 
 profile.long.temp%>%
   ggplot(., aes(TIMESTAMP, value, color=pump))+
   geom_line()+
-  facet_wrap(pump~.)
+  facet_wrap(pump~.)+
+  labs(title="air temp")
 
 # graph AP200 diag for system
 # should be 0 if there are no diagnostic problems
 profile.long.sys %>%
   filter(variable %in% c("diag_AP200_Avg")) %>%
-  ggplot(., aes(TIMESTAMP, value))+
-  geom_line()
+  ggplot(., aes(TIMESTAMP, value,color=factor(value)))+
+  geom_point()+
+  geom_hline(yintercept = 0)+
+  labs(title="AP200 diag")
+
+#zoom in on low diag values
+profile.long.sys %>%
+  filter(variable %in% c("diag_AP200_Avg")&value<15) %>%
+  ggplot(., aes(hour(TIMESTAMP), value,color=factor(value)))+
+  geom_point()+
+  geom_hline(yintercept = 0)+
+  labs(title="AP200 diag")+
+  facet_wrap(date(TIMESTAMP)~.)
+
+#graph diag value by hour
+profile.long.sys %>%
+  filter(variable %in% c("diag_AP200_Avg")) %>%
+  ggplot(., aes(hour(TIMESTAMP), value,color=factor(value)))+
+  geom_point()+
+  geom_hline(yintercept = 0)+
+  labs(title="AP200 diag")+
+  facet_wrap(date(TIMESTAMP)~.)
 
 
 #graph for system pump check data
