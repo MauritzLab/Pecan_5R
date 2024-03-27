@@ -68,7 +68,7 @@ raw_dat1 <- fread("TOA5_45644.RawData_2024_02_20_1501.dat",
 
 #putting in long format for pump data
 profile.long.pump <- profile_dat %>%
-  select(TIMESTAMP, L1_NumSamples, L1_CO2, L1_H2O, L1_cell_tmpr, L1_sample_flow, L2_NumSamples, L2_CO2, L2_H2O, L2_cell_tmpr, L2_cell_press, L3_sample_flow, L3_NumSamples, L3_CO2, L3_H2O, L3_cell_tmpr, L3_cell_press, L3_sample_flow, L4_NumSamples, L4_CO2, L4_H2O, L4_cell_tmpr, L4_cell_press, L4_sample_flow, L5_NumSamples, L5_CO2, L5_H2O, L5_cell_tmpr, L5_cell_press, L5_sample_flow, L6_NumSamples, L6_CO2, L6_H2O, L6_cell_tmpr, L6_cell_press, L6_sample_flow) %>%
+  select(TIMESTAMP, L1_NumSamples, L1_CO2, L1_H2O, L1_cell_tmpr, L1_cell_press, L1_sample_flow, L2_NumSamples, L2_CO2, L2_H2O, L2_cell_tmpr, L2_cell_press, L2_sample_flow, L3_sample_flow, L3_NumSamples, L3_CO2, L3_H2O, L3_cell_tmpr, L3_cell_press, L3_sample_flow, L4_NumSamples, L4_CO2, L4_H2O, L4_cell_tmpr, L4_cell_press, L4_sample_flow, L5_NumSamples, L5_CO2, L5_H2O, L5_cell_tmpr, L5_cell_press, L5_sample_flow, L6_NumSamples, L6_CO2, L6_H2O, L6_cell_tmpr, L6_cell_press, L6_sample_flow) %>%
   pivot_longer(!c(TIMESTAMP), names_to="sampleID",values_to="value")
 
 #seperate into pump level by using _
@@ -101,9 +101,9 @@ profile.long.sys <- profile_dat %>%
 levels(as.factor(profile.long.pump$variable))
 
 #graph cell temperature per pump data
-# Temperature of IRGA cell. The value of 
-# cell_tmpr, which is measured by the IRGA. The normal range for the sample 
-# cell temperature is 48 to 52 °C
+#Temperature of IRGA cell. 
+#The value of cell_tmpr, which is measured by the IRGA. 
+#The normal range for the sample cell temperature is 48 to 52 °C
 profile.long.pump %>% filter(variable %in% c("cell_tmpr")&value<53&value>47)%>%
   ggplot(., aes(TIMESTAMP, value, color=pump))+
   geom_line()+
@@ -118,7 +118,7 @@ cell_tmpr_outofrange <- profile.long.pump %>% filter(variable %in% c("cell_tmpr"
 
 #graph cell pressure per pump data
 # cell pressure of the IRGA
-# This should be within ± 2 kPa of the pressure setpoint
+# This should be within ± 2 kPa of the pressure setpoint which was set to 54
 # Compare cell_press (pressure measured by the IRGA) to pump_press
 # (pressure measured at the pump inlet). These two points are physically 
 # connected by a tube with relatively low flow, such that they should be at 
@@ -147,9 +147,8 @@ profile.long.pump %>% filter(variable %in% c("NumSamples"))%>%
 
 # graph sample flow for each pump
 #  The normal expected range for the flow would be from ~200 to ~250 ml/min
-#  As a general guideline, the filters 
-# should be replaced when the flow decreases by 25%. The filters will normally 
-# last a few months, but will require more frequent changes in dirty conditions
+#  As a general guideline, the filters should be replaced when the flow decreases by 25%. 
+# The filters will normally last a few months, but will require more frequent changes in dirty conditions
 profile.long.pump %>% filter(variable %in% c("sample_flow"))%>%
   ggplot(., aes(TIMESTAMP, value, color=pump))+
   geom_line()+
@@ -157,21 +156,21 @@ profile.long.pump %>% filter(variable %in% c("sample_flow"))%>%
   facet_wrap(pump~.)+
   labs(title="sample flow")
 
-#graph average CO2 per pump data
+#graph average CO2 per pump data in ppm
 profile.long.pump %>% filter(variable %in% c("CO2"))%>%
   ggplot(., aes(TIMESTAMP, value, color=pump))+
   geom_line()+
   facet_wrap(pump~.)+
   labs(title="CO2")
 
-#graph average H2O per pump data
+#graph average H2O per pump data in ppt
 profile.long.pump %>% filter(variable %in% c("H2O"))%>%
   ggplot(., aes(TIMESTAMP, value, color=pump))+
   geom_line()+
   facet_wrap(pump~.)+
   labs(title="H2O")
 
-#graph temperaure per level of pump 
+#graph air temperaure per level of pump 
 profile.long.temp%>%
   ggplot(., aes(TIMESTAMP, value, color=pump))+
   geom_line()+
@@ -207,6 +206,14 @@ profile.long.sys %>%
 
 
 #graph for system pump check data
+# if pump control is = 0, the AP200 has turned the pump off
+# The pump module has a fan that turns on if pump_tmpr rises above 45 °C. 
+# The fan will stay on until the pump temperature falls below 40 °C.
+# pump heat turns on if if pump temp falls below 2 °C
+# pump pressure should not disagree more than 4 kPa with cell pressure
+# pimp speed should not oscillate
+# A value of 1 on pumptmprOK indicates no pump temperature problem at any time during the averaging period. 
+# A value of 0 indicates a pump temperature problem during the entire time.
 profile.long.sys %>% filter(variable %in% c("pump_press_Avg", "pump_control_Avg", "pump_speed_Avg", "PumpTmprOK_Avg", "pump_tmpr_Avg", "pump_heat_Avg", "pump_fan_Avg"))%>%
   ggplot(., aes(TIMESTAMP, value))+
   geom_line()+
@@ -219,6 +226,7 @@ profile.long.sys %>% filter(sampleID %in% c("ValveTmprOK_Avg", "valve_tmpr_Avg",
   facet_grid(sampleID~.,scales="free_y")
 
 #graph for battery & panel temp check
+# The AP200 supply voltage must be 10.0 Vdc to 16.0 Vdc
 profile.long.sys %>% filter(variable %in% c("batt_volt_Avg", "BattVoltLOW_Avg", "panel_tmpr_Avg"))%>%
   ggplot(., aes(TIMESTAMP, value))+
   geom_line()+
