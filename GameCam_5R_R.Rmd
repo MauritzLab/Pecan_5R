@@ -1,0 +1,45 @@
+
+# Code to rename Game Cam photos with their time stamp
+# Game Cam installed September 2023
+# script author: Victoria Martinez
+# 20 March 2024
+
+library(lubridate)
+library(dplyr)
+library(miscset)
+
+#set working directory to original image files location
+wd <- "C:/Users/vmartinez62/OneDrive - University of Texas at El Paso/Pecan_Tornillo_5R/ECTower/BelowCanopy/Photos_GameCamera/100MEDIA/"
+setwd(wd)
+
+#When data card gets too full it will create a 101MEDIA file name, just change the name to 100MEDIA after the first file has been transeferred and renamed already
+
+#get list of file names as character vectors 
+current_files <- list.files(wd)
+file.info(current_files)
+
+#create character string of file names using mtime data
+date_time_strings <- data.frame(date_time = file.mtime(current_files))
+
+date_time_strings <- date_time_strings%>%
+mutate(new_name = as.character(paste(year(date_time), 
+leading0(month(date_time),digits = 2), 
+leading0(day(date_time),digits = 2), 
+leading0(hour(date_time),digits = 2), 
+leading0(minute(date_time),digits = 2), 
+leading0(second(date_time),digits = 2), 
+".JPG", sep = "")))
+
+file.rename((current_files), (date_time_strings$new_name))
+
+
+
+
+
+
+
+
+
+
+
+
